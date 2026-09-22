@@ -1,0 +1,187 @@
+name: ci
+
+on:
+  pull_request:
+    paths-ignore:
+      - "deploy/**"
+  push:
+    branches: [main]
+    paths-ignore:
+      - "deploy/**"
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/hello-world
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      - name: gofmt
+        run: |
+          fmt_out=$(gofmt -l .)
+          if [ -n "$fmt_out" ]; then
+            echo "$fmt_out"
+            echo "gofmt found unformatted files"
+            exit 1
+          fi
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: go test
+        run: go test ./...
+
+  build:
+    needs: lint-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      # Uses a PAT (CI_GITHUB_TOKEN), not the default GITHUB_TOKEN: this
+      # package was originally created by a different repo's workflow, and
+      # GitHub's per-package "Manage Actions access" grant -- despite being
+      # set to Write and login succeeding -- does not reliably extend
+      # GITHUB_TOKEN's push rights to it for personal-account packages.
+      # Confirmed by testing: same "permission_denied: write_package" error
+      # with Write access granted and a successful login.
+      - name: Log in to GHCR
+        if: github.event_name == 'push'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ secrets.CI_GITHUB_USERNAME }}
+          password: ${{ secrets.CI_GITHUB_TOKEN }}
+
+      # Multi-arch (amd64 + arm64) only on the real artifact (push to main);
+      # PR builds just validate the Dockerfile compiles on the runner's
+      # native platform, no push.
+      - name: Build image
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: ${{ github.event_name == 'push' && 'linux/amd64,linux/arm64' || 'linux/amd64' }}
+          push: ${{ github.event_name == 'push' }}
+          tags: ${{ env.IMAGE }}:${{ github.sha }}
+          build-args: |
+            VERSION=${{ github.sha }}
+            GIT_COMMIT_SHA=${{ github.sha }}
+          # This package's GHCR page showed the platform repo as its
+          # "source" -- a sticky label from whenever the package was first
+          # created, back when it was pushed by that repo's own CI, before
+          # the app moved to its own repo. No push since has carried this
+          # label at all (confirmed via `docker buildx imagetools inspect
+          # --format '{{json .Image.Config.Labels}}'`, which returned null
+          # for the latest image). Setting it explicitly here corrects it
+          # going forward.
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+
+  # Proves the app actually runs, not just that it builds: spins up a
+  # throwaway Kind cluster (same node image the real dev/prod clusters
+  # use), loads the just-built image directly (no registry involved, so
+  # this runs on PRs too), applies deploy/base with that local image
+  # substituted in, and asserts the platform's app contract (the 5
+  # endpoints every app on this platform must expose). Deliberately
+  # bypasses Argo CD/GitOps here -- that path is what the platform repo's
+  # own integration test exercises, against the real published image.
+  smoke-test:
+    needs: lint-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Build image (local only)
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          load: true
+          tags: hello-world:smoke-test
+          build-args: |
+            VERSION=smoke-test
+            GIT_COMMIT_SHA=${{ github.sha }}
+
+      - name: Install kind and kustomize
+        run: |
+          curl -sLo /tmp/kind https://kind.sigs.k8s.io/dl/v0.33.0/kind-linux-amd64
+          chmod +x /tmp/kind
+          sudo mv /tmp/kind /usr/local/bin/kind
+          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash -s 5.4.2
+          sudo mv kustomize /usr/local/bin/kustomize
+
+      - name: Create cluster
+        run: |
+          kind create cluster --name smoke-test \
+            --image kindest/node:v1.29.2@sha256:51a1434a5397193442f0be2a297b488b6c919ce8a3931be0ce822606ea5ca245
+
+      - name: Load image into cluster
+        run: kind load docker-image hello-world:smoke-test --name smoke-test
+
+      - name: Deploy
+        run: |
+          mkdir -p /tmp/smoke-deploy
+          cp deploy/base/*.yaml /tmp/smoke-deploy/
+          cd /tmp/smoke-deploy
+          kustomize edit set image ${{ env.IMAGE }}=hello-world:smoke-test
+          kubectl apply -k .
+          kubectl rollout status deployment/hello-world --timeout=90s
+
+      - name: Smoke test
+        run: |
+          kubectl port-forward svc/hello-world 18080:8080 &
+          sleep 3
+          bash scripts/smoke-test.sh http://localhost:18080
+
+  # Patches the built digest into the dev overlay and commits it back to
+  # main so Argo CD (in the platform repo's cluster) picks it up. Uses only
+  # the default GITHUB_TOKEN -- self-service means this app team never needs
+  # write access to the platform repo, only to its own. paths-ignore above
+  # keeps this commit from retriggering the pipeline; GitHub's own rule that
+  # pushes authenticated with the default token never trigger new workflow
+  # runs is a second, independent guard against a commit loop.
+  update-dev-digest:
+    needs: [build, smoke-test]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+
+      - name: Install kustomize
+        run: |
+          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash -s 5.4.2
+          sudo mv kustomize /usr/local/bin/kustomize
+
+      - name: Set image digest
+        working-directory: deploy/overlays/dev
+        run: kustomize edit set image ${{ env.IMAGE }}=${{ env.IMAGE }}@${{ needs.build.outputs.digest }}
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add deploy/overlays/dev/kustomization.yaml
+          if git diff --cached --quiet; then
+            echo "no change to dev overlay, skipping commit"
+          else
+            git commit -m "chore(deploy): deploy hello-world@${{ github.sha }} to dev"
+            git push origin main
+          fi
