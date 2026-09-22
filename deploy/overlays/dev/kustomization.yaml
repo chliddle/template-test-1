@@ -19,6 +19,6 @@ patches:
 # a fresh package under a name this repo's own workflow creates, avoiding
 # the stale cross-repo package-linkage issue the old name had.
 images:
-- digest: sha256:8faa13c9f58a0735e68d7d7c882f97da6745025de5689a2c573ab9e9e72330d0
+- digest: sha256:e097b7c3aae1a90292e96c1410f62a95aae346b98f0b599ed3ffca2be61a6454
   name: ghcr.io/chliddle/template-test-1
   newName: ghcr.io/chliddle/template-test-1
