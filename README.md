@@ -65,6 +65,16 @@ docker build -t template-test-1:local .
 docker run -p 8080:8080 -e ENVIRONMENT=local template-test-1:local
 ```
 
+## Pre-commit hooks
+
+[gitleaks](https://github.com/gitleaks/gitleaks) scans every commit for
+hardcoded secrets before it's made.
+
+```bash
+brew install pre-commit   # or: pip install pre-commit
+pre-commit install        # once per clone -- wires the hook into .git/hooks/
+```
+
 ## License
 
 [MIT](LICENSE)
