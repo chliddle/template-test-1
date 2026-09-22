@@ -70,8 +70,14 @@ docker run -p 8080:8080 -e ENVIRONMENT=local template-test-1:local
 [gitleaks](https://github.com/gitleaks/gitleaks) scans every commit for
 hardcoded secrets before it's made. [zizmor](https://github.com/zizmorcore/zizmor)
 scans every workflow change for dangerous GitHub Actions patterns -- the
-same check also runs as a required CI job (`security lint`), with online
-audits enabled there; the local hook runs offline only.
+same check also runs as a CI job (`security lint`), with online audits
+enabled there. **Not** a required status check here specifically: this
+repo's own automation (`ci.yml`'s digest-bump commit, `release.yml`'s
+prod promotion, `template-init.yml`) pushes bot-authored commits
+directly to `main`, and GitHub rejects any direct push whose commit
+hasn't already had a required check run against it -- which a
+just-created commit never has. Required on the platform repo
+(`local-platform-lab`), which has no such automation.
 
 ```bash
 brew install pre-commit   # or: pip install pre-commit
