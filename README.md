@@ -64,3 +64,7 @@ make run     # build + run on :8080
 docker build -t template-test-1:local .
 docker run -p 8080:8080 -e ENVIRONMENT=local template-test-1:local
 ```
+
+## License
+
+[MIT](LICENSE)
