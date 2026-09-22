@@ -19,8 +19,8 @@ ARG TARGETARCH
 
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
     -ldflags "-s -w \
-      -X github.com/chliddle/local-platform-lab-app-1/internal/buildinfo.Version=${VERSION} \
-      -X github.com/chliddle/local-platform-lab-app-1/internal/buildinfo.GitCommitSHA=${GIT_COMMIT_SHA}" \
+      -X github.com/chliddle/template-test-1/internal/buildinfo.Version=${VERSION} \
+      -X github.com/chliddle/template-test-1/internal/buildinfo.GitCommitSHA=${GIT_COMMIT_SHA}" \
     -o /out/hello-world .
 
 FROM gcr.io/distroless/static-debian12:nonroot

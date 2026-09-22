@@ -11,8 +11,8 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	"github.com/chliddle/local-platform-lab-app-1/internal/handlers"
-	"github.com/chliddle/local-platform-lab-app-1/internal/middleware"
+	"github.com/chliddle/template-test-1/internal/handlers"
+	"github.com/chliddle/template-test-1/internal/middleware"
 )
 
 func main() {
@@ -36,7 +36,7 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("hello-world listening on %s", addr)
+		log.Printf("template-test-1 listening on %s", addr)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("server error: %v", err)
 		}

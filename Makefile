@@ -1,7 +1,7 @@
 .PHONY: build test run fmt vet
 
 build:
-	CGO_ENABLED=0 go build -o bin/hello-world .
+	CGO_ENABLED=0 go build -o bin/template-test-1 .
 
 test:
 	go test ./...
@@ -13,4 +13,4 @@ vet:
 	go vet ./...
 
 run: build
-	ENVIRONMENT=local ./bin/hello-world
+	ENVIRONMENT=local ./bin/template-test-1

@@ -5,8 +5,8 @@ package buildinfo
 import "os"
 
 var (
-	// Name is fixed -- this binary is always "hello-world".
-	Name = "hello-world"
+	// Name is fixed -- this binary is always "template-test-1".
+	Name = "template-test-1"
 
 	// Version and GitCommitSHA are overridden at build time:
 	//   go build -ldflags "-X .../buildinfo.Version=... -X .../buildinfo.GitCommitSHA=..."

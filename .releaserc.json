@@ -1,6 +1,7 @@
 {
-  "branches": ["main"],
-  "repositoryUrl": "https://github.com/chliddle/local-platform-lab-app-1.git",
+  "branches": [
+    "main"
+  ],
   "plugins": [
     "@semantic-release/commit-analyzer",
     "@semantic-release/release-notes-generator",

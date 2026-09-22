@@ -1,4 +1,4 @@
-# local-platform-lab-app-1
+# template-test-1
 
 A **template** app-team service repo for the [local-platform-lab](https://github.com/chliddle/local-platform-lab)
 platform. Demonstrates and enables self-service deployment: this repo

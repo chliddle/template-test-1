@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/chliddle/local-platform-lab-app-1/internal/buildinfo"
+	"github.com/chliddle/template-test-1/internal/buildinfo"
 )
 
 func TestHealth(t *testing.T) {
@@ -51,8 +51,8 @@ func TestVersion(t *testing.T) {
 		t.Fatalf("failed to decode JSON body: %v", err)
 	}
 
-	if got.Name != "hello-world" {
-		t.Errorf("expected name %q, got %q", "hello-world", got.Name)
+	if got.Name != "template-test-1" {
+		t.Errorf("expected name %q, got %q", "template-test-1", got.Name)
 	}
 	if got.Version != "v1.2.3" {
 		t.Errorf("expected version %q, got %q", "v1.2.3", got.Version)
@@ -69,7 +69,7 @@ func TestRoot(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", rec.Code)
 	}
-	if !strings.Contains(rec.Body.String(), "hello-world") {
+	if !strings.Contains(rec.Body.String(), "template-test-1") {
 		t.Errorf("expected body to mention app name, got %q", rec.Body.String())
 	}
 	if ct := rec.Header().Get("Content-Type"); !strings.HasPrefix(ct, "text/html") {

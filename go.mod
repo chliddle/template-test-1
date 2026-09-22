@@ -1,4 +1,4 @@
-module github.com/chliddle/local-platform-lab-app-1
+module github.com/chliddle/template-test-1
 
 go 1.25.0
 
