@@ -68,7 +68,10 @@ docker run -p 8080:8080 -e ENVIRONMENT=local template-test-1:local
 ## Pre-commit hooks
 
 [gitleaks](https://github.com/gitleaks/gitleaks) scans every commit for
-hardcoded secrets before it's made.
+hardcoded secrets before it's made. [zizmor](https://github.com/zizmorcore/zizmor)
+scans every workflow change for dangerous GitHub Actions patterns -- the
+same check also runs as a required CI job (`security lint`), with online
+audits enabled there; the local hook runs offline only.
 
 ```bash
 brew install pre-commit   # or: pip install pre-commit
