@@ -1,0 +1,26 @@
+# Milestone 6 (platform repo): the blue-green arm of the deployment-
+# strategy comparison sandbox. Doesn't reference ../../base at all --
+# base's own Deployment would conflict with this overlay's Rollout of the
+# same name, and kustomize's default load restrictor blocks cherry-
+# picking just base/service.yaml from a sibling tree (confirmed live:
+# "file is not in or below" the kustomization root) -- so service.yaml
+# here is a small, deliberate duplicate instead (see its own comment).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: template-test-1-bluegreen
+
+resources:
+- service.yaml
+- rollout.yaml
+- preview-service.yaml
+
+labels:
+- pairs:
+    app.kubernetes.io/part-of: local-platform
+  includeSelectors: true
+
+images:
+- digest: sha256:46be84718e07f0abb125b97763a54539dbd83c14b04b35975c477b4f5d8fd189
+  name: ghcr.io/chliddle/template-test-1
+  newName: ghcr.io/chliddle/template-test-1

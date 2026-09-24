@@ -1,0 +1,17 @@
+# The Rollout controller repoints this Service's selector to whichever
+# ReplicaSet is the new, not-yet-promoted one -- lets the new version be
+# inspected (dashboard/synthetic probe/manual curl) before promoting it
+# to activeService (base/service.yaml's Service, unchanged).
+apiVersion: v1
+kind: Service
+metadata:
+  name: template-test-1-preview
+  labels:
+    app.kubernetes.io/name: template-test-1
+spec:
+  selector:
+    app.kubernetes.io/name: template-test-1
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http

@@ -1,0 +1,86 @@
+# Blue-green needs no Istio wiring at all -- unlike canary's fine-grained
+# weighted split, blue-green is inherently binary (100% old or 100% new),
+# so the Rollout controller implements it purely by repointing each
+# Service's own selector (activeService stays on the current stable
+# ReplicaSet, previewService points at the new one) -- both plain
+# Services, no VirtualService/DestinationRule needed.
+#
+# autoPromotionEnabled: false -- a real manual-promotion gate is the
+# defining characteristic of blue-green vs. canary; auto-promoting would
+# just make this a slower canary. Promote with:
+#   kubectl argo rollouts promote template-test-1 -n template-test-1-bluegreen
+#
+# app.kubernetes.io/part-of hardcoded on selector/template -- kustomize's
+# labels transformer doesn't drill into a Rollout CRD's selector/
+# podTemplate paths the way it does for well-known workload kinds
+# (confirmed live in the app-template repo's own rollout.yaml -- same
+# note there, same fix).
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: template-test-1
+  labels:
+    app.kubernetes.io/name: template-test-1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: template-test-1
+      app.kubernetes.io/part-of: local-platform
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: template-test-1
+        app.kubernetes.io/part-of: local-platform
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      containers:
+        - name: template-test-1
+          image: ghcr.io/chliddle/template-test-1:placeholder
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: ENVIRONMENT
+              value: dev-bluegreen
+            - name: FAULT_ERROR_RATE
+              value: "0"
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+  strategy:
+    blueGreen:
+      activeService: template-test-1
+      previewService: template-test-1-preview
+      autoPromotionEnabled: false

@@ -1,0 +1,20 @@
+# Same shape as deploy/base/service.yaml -- duplicated, not shared via
+# ../../base, because kustomize's default load restrictor blocks
+# referencing a single file from a sibling directory tree (confirmed
+# live: "file is not in or below" the kustomization root) and this
+# overlay can't pull in the whole base (its Deployment would conflict
+# with this overlay's own Rollout of the same name). This is the
+# activeService the blue-green Rollout (rollout.yaml) promotes into.
+apiVersion: v1
+kind: Service
+metadata:
+  name: template-test-1
+  labels:
+    app.kubernetes.io/name: template-test-1
+spec:
+  selector:
+    app.kubernetes.io/name: template-test-1
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http

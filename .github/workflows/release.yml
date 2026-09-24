@@ -56,8 +56,14 @@ jobs:
 
       - name: Read the digest already validated in dev
         id: dev-digest
+        # Milestone 6 (platform repo): dev is now three overlays (dev-
+        # rolling/dev-bluegreen/dev-canary), not one -- update-dev-digest
+        # (ci.yml) always bumps all three to the same digest together, so
+        # any one of them is an equally valid source of truth here.
+        # dev-rolling picked since it's the closest match to prod's own
+        # still-unconverted plain-Deployment shape.
         run: |
-          digest=$(python3 .github/scripts/read_image_digest.py deploy/overlays/dev/kustomization.yaml "$IMAGE")
+          digest=$(python3 .github/scripts/read_image_digest.py deploy/overlays/dev-rolling/kustomization.yaml "$IMAGE")
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7

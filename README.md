@@ -15,13 +15,25 @@ never touched for routine releases.
   `/`, `/health`, `/ready`, `/version`, `/metrics`)
 - `Dockerfile` -- multi-arch (amd64/arm64) build, cross-compiled to avoid
   QEMU emulation
-- `deploy/base/` -- Kustomize base (Deployment, Service)
-- `deploy/overlays/dev/`, `deploy/overlays/prod/` -- per-environment
-  overlays; `images:` here is the pinned digest Argo CD deploys
+- `deploy/base/` -- Kustomize base (Deployment, Service); only
+  `deploy/overlays/prod/` still layers on top of it as-is
+- `deploy/overlays/dev-{rolling,bluegreen,canary}/` -- Milestone 6
+  (platform repo): dev runs the same app three ways in parallel,
+  self-contained overlays (not sharing `deploy/base/`'s Deployment) --
+  plain rolling update, an Argo Rollouts blue-green Rollout, and an Argo
+  Rollouts canary Rollout with native Istio traffic routing + automated
+  Prometheus analysis + automatic rollback. `platform/rollouts/` in the
+  platform repo owns the per-variant routing (`VirtualService`/
+  `DestinationRule`/`AnalysisTemplate`/`HTTPRoute`), same division of
+  responsibility as `HTTPRoute`s always had.
+- `deploy/overlays/prod/` -- unchanged, still a plain Deployment;
+  `images:` here is the pinned digest Argo CD deploys
 - `scripts/smoke-test.sh` -- asserts the platform's app contract (the 5
   endpoints above)
-- `.github/workflows/ci.yml` -- lint, test, ephemeral-cluster smoke test,
-  build, push to GHCR, patch the digest into `deploy/overlays/dev`
+- `.github/workflows/ci.yml` -- lint, test, ephemeral-cluster smoke test
+  (against `deploy/overlays/dev-rolling` specifically -- the Rollout-
+  specific mechanics are proven live against the real dev cluster, not
+  here), build, push to GHCR, patch the digest into all three dev overlays
 - `.github/workflows/release.yml` -- runs after `ci.yml` succeeds;
   semantic-release cuts a version from Conventional Commits, then promotes
   the *same* GHCR digest (never rebuilt) into `deploy/overlays/prod`
@@ -34,7 +46,8 @@ never touched for routine releases.
 push to main (feat:/fix:/...)
   -> ci: lint, test, ephemeral-cluster smoke test, build multi-arch image,
      push to GHCR (tag: commit SHA)
-  -> ci: patch deploy/overlays/dev with the resulting digest, commit
+  -> ci: patch all three deploy/overlays/dev-* overlays with the
+     resulting digest, commit
   -> release (gated on ci succeeding): semantic-release computes next version
        - if a release is warranted:
            -> re-tag the same GHCR digest with the semver (no rebuild)

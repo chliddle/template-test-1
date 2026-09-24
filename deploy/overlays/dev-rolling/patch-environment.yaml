@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: template-test-1
+spec:
+  template:
+    spec:
+      containers:
+        - name: template-test-1
+          env:
+            - name: ENVIRONMENT
+              value: dev-rolling
+            # Milestone 6: scripts/simulate-bad-rollout.sh flips this to a
+            # real rate (e.g. "0.4") across all three dev overlays at once,
+            # via a git commit -- see internal/middleware/fault.go. Starts
+            # at 0 here: this variant should behave completely normally
+            # until a comparison run is actually triggered.
+            - name: FAULT_ERROR_RATE
+              value: "0"

@@ -1,0 +1,23 @@
+# Milestone 6 (platform repo): the canary arm of the deployment-strategy
+# comparison sandbox -- native Istio traffic routing tied to automated
+# Prometheus analysis and automatic rollback (dev only: prod has no
+# Prometheus, an already-accepted gap). Same "own service.yaml, no
+# ../../base" reasoning as dev-bluegreen's kustomization.yaml.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: template-test-1-canary
+
+resources:
+- service.yaml
+- rollout.yaml
+
+labels:
+- pairs:
+    app.kubernetes.io/part-of: local-platform
+  includeSelectors: true
+
+images:
+- digest: sha256:46be84718e07f0abb125b97763a54539dbd83c14b04b35975c477b4f5d8fd189
+  name: ghcr.io/chliddle/template-test-1
+  newName: ghcr.io/chliddle/template-test-1
