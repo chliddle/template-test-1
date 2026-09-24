@@ -16,11 +16,11 @@ resources:
 - preview-service.yaml
 
 labels:
-- pairs:
+- includeSelectors: true
+  pairs:
     app.kubernetes.io/part-of: local-platform
-  includeSelectors: true
 
 images:
-- digest: sha256:46be84718e07f0abb125b97763a54539dbd83c14b04b35975c477b4f5d8fd189
+- digest: sha256:e6132e1a43943eedef2d6c81cbf70f3272bbbfacf31e278b52f770f9dafc3c6a
   name: ghcr.io/chliddle/template-test-1
   newName: ghcr.io/chliddle/template-test-1
