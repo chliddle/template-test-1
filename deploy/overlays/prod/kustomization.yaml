@@ -12,10 +12,14 @@ patches:
     kind: Deployment
     name: template-test-1
 
-# Placeholder digest -- overwritten by .github/workflows/release.yml, which
-# promotes the exact digest already validated in deploy/overlays/dev
-# (never rebuilds) whenever semantic-release cuts a new version.
+# Placeholder tag -- overwritten by .github/workflows/release.yml with the
+# new semver tag (v1.4.2-style) whenever semantic-release cuts a version.
+# That tag always points at the exact digest already validated in
+# deploy/overlays/dev (never rebuilds) -- pinning by tag here instead of
+# the raw digest is purely for readability (kubectl/Argo CD show
+# "v1.4.2", not a 71-char sha256 string); see release.yml's own comment
+# for the mutable-tag-vs-immutable-digest trade-off this accepts.
 images:
-- digest: sha256:e6132e1a43943eedef2d6c81cbf70f3272bbbfacf31e278b52f770f9dafc3c6a
-  name: ghcr.io/chliddle/template-test-1
+- name: ghcr.io/chliddle/template-test-1
   newName: ghcr.io/chliddle/template-test-1
+  newTag: placeholder
