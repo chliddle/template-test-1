@@ -18,6 +18,6 @@ labels:
     app.kubernetes.io/part-of: local-platform
 
 images:
-- digest: sha256:e6132e1a43943eedef2d6c81cbf70f3272bbbfacf31e278b52f770f9dafc3c6a
+- digest: sha256:14f0c99487f14270c6c8f6e0827905ee14c309f09de428cb5fa54ec1c506b801
   name: ghcr.io/chliddle/template-test-1
   newName: ghcr.io/chliddle/template-test-1
