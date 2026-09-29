@@ -21,6 +21,6 @@ patches:
 # Placeholder digest -- CI overwrites this with the real one via
 # `kustomize edit set image` after building and pushing to GHCR.
 images:
-- digest: sha256:14f0c99487f14270c6c8f6e0827905ee14c309f09de428cb5fa54ec1c506b801
+- digest: sha256:47ea05fa8f6ccfd67a58d7bb376859bf77760ffbe021ec4e19c23f53011a5754
   name: ghcr.io/chliddle/template-test-1
   newName: ghcr.io/chliddle/template-test-1
