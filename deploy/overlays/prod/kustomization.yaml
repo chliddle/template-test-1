@@ -22,4 +22,4 @@ patches:
 images:
 - name: ghcr.io/chliddle/template-test-1
   newName: ghcr.io/chliddle/template-test-1
-  newTag: placeholder
+  newTag: 1.2.1
