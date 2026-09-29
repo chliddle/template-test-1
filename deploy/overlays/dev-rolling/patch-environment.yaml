@@ -16,4 +16,4 @@ spec:
             # at 0 here: this variant should behave completely normally
             # until a comparison run is actually triggered.
             - name: FAULT_ERROR_RATE
-              value: "0"
+              value: "0.4"
