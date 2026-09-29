@@ -3,28 +3,22 @@ kind: Kustomization
 
 namespace: template-test-1
 
-# Self-contained, no ../../base -- prod is now Rollout-based (canary,
-# converted from a plain Deployment), same "own service.yaml/rollout.yaml,
-# no base" structure deploy/overlays/dev-canary already uses and for the
-# same reason (kustomize patches onto a Rollout CRD lose the whole
-# containers list without OpenAPI merge-key metadata third-party CRDs
-# don't have -- simpler to just own the full manifest than fight that).
 resources:
-- service.yaml
-- rollout.yaml
+- ../../base
 
-labels:
-- includeSelectors: true
-  pairs:
-    app.kubernetes.io/part-of: local-platform
+patches:
+- path: patch-environment.yaml
+  target:
+    kind: Deployment
+    name: template-test-1
 
-# Placeholder tag -- overwritten by .github/workflows/promote-prod.yml
-# with the new semver tag (v1.4.2-style) whenever a release is published.
+# Placeholder tag -- overwritten by .github/workflows/release.yml with the
+# new semver tag (v1.4.2-style) whenever semantic-release cuts a version.
 # That tag always points at the exact digest already validated in
-# deploy/overlays/dev-rolling (never rebuilds) -- pinning by tag here
-# instead of the raw digest is purely for readability (kubectl/Argo CD
-# show "v1.4.2", not a 71-char sha256 string); see promote-prod.yml's own
-# comment for the mutable-tag-vs-immutable-digest trade-off this accepts.
+# deploy/overlays/dev (never rebuilds) -- pinning by tag here instead of
+# the raw digest is purely for readability (kubectl/Argo CD show
+# "v1.4.2", not a 71-char sha256 string); see release.yml's own comment
+# for the mutable-tag-vs-immutable-digest trade-off this accepts.
 images:
 - name: ghcr.io/chliddle/template-test-1
   newName: ghcr.io/chliddle/template-test-1
