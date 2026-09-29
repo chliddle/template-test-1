@@ -99,10 +99,23 @@ spec:
       # analysis keeps passing, aborting only if it fails -- an indefinite
       # pause would need a manual `promote` even on a healthy rollout,
       # which is what dev-bluegreen's manual gate is already for.
+      #
+      # First pause is 150s, not 30s -- confirmed live this matters, not
+      # just a nice-to-have margin: the AnalysisTemplate's own timing
+      # (platform/rollouts/dev/analysistemplate.yaml: initialDelay 60s +
+      # interval 30s, failureLimit 2) needs at least 60s + 2*30s = 120s of
+      # wall-clock time before it can accumulate the 2 failed measurements
+      # needed to actually abort. With only a 30s first pause, the rollout
+      # auto-promoted all the way to 100% weight while a live 40%-error
+      # canary was still sitting on its very first (and only) measurement
+      # -- the safety net never got a chance to fire before the rollout
+      # outran it. This pause has to stay longer than the analysis's own
+      # worst-case time-to-verdict, or "automated rollback" is only
+      # automated when nothing else is happening to end the rollout first.
       steps:
         - setWeight: 20
         - pause:
-            duration: 30s
+            duration: 150s
         - setWeight: 50
         - pause:
             duration: 30s
