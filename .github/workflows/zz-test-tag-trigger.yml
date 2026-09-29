@@ -1,0 +1,18 @@
+name: zz-test-tag-trigger
+
+# Throwaway, temporary: verifying live whether a tag pushed using the
+# default GITHUB_TOKEN (from zz-test-tag-pusher.yml) actually fires this
+# on:push:tags: trigger. Deleted immediately after the test.
+on:
+  push:
+    tags: ["zztest-*"]
+
+jobs:
+  fired:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - env:
+          REF: ${{ github.ref }}
+        run: echo "TRIGGERED by ${REF}"

@@ -1,0 +1,27 @@
+name: zz-test-tag-pusher
+
+# Throwaway, temporary: pushes a tag using ONLY the default GITHUB_TOKEN
+# (checkout's default credential, never a PAT) to test whether that's
+# enough to trigger zz-test-tag-trigger.yml's on:push:tags:, or whether
+# GitHub's recursive-trigger suppression blocks it -- the exact question
+# for release.yml/promote-prod.yml's design. Deleted immediately after.
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/zz-test-tag-pusher.yml"
+
+jobs:
+  push-test-tag:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with: # zizmor: ignore[artipacked] needed for this job's own later git push, throwaway test file
+          persist-credentials: true
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag zztest-1
+          git push origin zztest-1
