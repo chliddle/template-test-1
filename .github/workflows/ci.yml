@@ -189,12 +189,21 @@ jobs:
           bash scripts/smoke-test.sh http://localhost:18080
 
   # Patches the built digest into the dev overlay and commits it back to
-  # main so Argo CD (in the platform repo's cluster) picks it up. Uses only
-  # the default GITHUB_TOKEN -- self-service means this app team never needs
-  # write access to the platform repo, only to its own. paths-ignore above
-  # keeps this commit from retriggering the pipeline; GitHub's own rule that
-  # pushes authenticated with the default token never trigger new workflow
-  # runs is a second, independent guard against a commit loop.
+  # main so Argo CD (in the platform repo's cluster) picks it up. The git
+  # push itself uses only the default GITHUB_TOKEN -- self-service means
+  # this app team never needs write access to the platform repo's
+  # *contents*, only to its own. paths-ignore above keeps this commit from
+  # retriggering the pipeline; GitHub's own rule that pushes authenticated
+  # with the default token never trigger new workflow runs is a second,
+  # independent guard against a commit loop.
+  #
+  # The final "Request dev health check" step is a narrower exception to
+  # that same-repo-only rule: it needs PLATFORM_DISPATCH_TOKEN, a repo
+  # secret holding a PAT that can fire a repository_dispatch against
+  # local-platform-lab, so that repo's own self-hosted runner (the only
+  # thing with network reach to the real dev cluster -- see its
+  # check-app-dev-health.yml) can confirm this digest is actually
+  # Synced+Healthy before release.yml is allowed to tag a version.
   update-dev-digest:
     needs: [build, smoke-test]
     runs-on: ubuntu-latest
@@ -246,3 +255,31 @@ jobs:
             git commit -m "chore(deploy): deploy template-test-1@${{ github.sha }} to dev (rolling/bluegreen/canary)"
             git push origin main
           fi
+
+      # rolling and canary only, deliberately excluding bluegreen: its
+      # Rollout sits permanently paused (Suspended) awaiting a human's
+      # manual `kubectl argo rollouts promote`, which isn't a signal of
+      # whether this code is healthy -- see
+      # local-platform-lab/scripts/wait-for-argocd-health.sh for the
+      # live-confirmed detail. release.yml only tags once this check
+      # reports success. service_name ("template-test-1") is the one
+      # Kubernetes Service name shared by all three variant namespaces --
+      # check-app-dev-health.yml's SLI gate uses it to generate real
+      # traffic and read http_requests_total/blackbox/HTTPRoute signals
+      # per namespace (see wait-for-sli-health.sh).
+      - name: Request dev health check
+        env:
+          DISPATCH_TOKEN: ${{ secrets.PLATFORM_DISPATCH_TOKEN }}
+          CALLBACK_REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        # Values come in via env:, not interpolated directly into the run
+        # block -- a GitHub Actions context expansion happens before the
+        # shell ever sees it, so putting it straight in the script body is
+        # a script-injection risk (confirmed by zizmor's template-injection
+        # audit); env vars let the shell treat it as inert data instead.
+        run: |
+          curl -fsSL -X POST \
+            -H "Authorization: token ${DISPATCH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/chliddle/local-platform-lab/dispatches" \
+            -d "{\"event_type\":\"check-dev-health\",\"client_payload\":{\"apps\":\"template-test-1-rolling template-test-1-canary\",\"service_name\":\"template-test-1\",\"callback_repo\":\"${CALLBACK_REPO}\",\"sha\":\"${SHA}\"}}"
